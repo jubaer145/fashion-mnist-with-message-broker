@@ -1,0 +1,34 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+  </head>
+  <body>
+    <form>
+        <input type="number" name="emit_data" id="emit_data" placeholder="index_of_test_set" >
+    </form>
+    <button onClick="sendMsg()">Hit Me</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.1/socket.io.js"></script>
+    <script>
+      const socket = io("http://localhost:8080");
+
+      socket.on('message_response', function(msg) {
+                console.log('Inside prediction')
+                console.log(msg)
+                $('#results').append('<br>' + $('<div/>').text(msg.prediction).html());
+            });
+
+      function sendMsg() {
+        let val = document.getElementById("emit_data").value
+        console.log(val)
+        socket.emit("message", val);
+      }
+    </script>
+    
+  </body>
+</html>
