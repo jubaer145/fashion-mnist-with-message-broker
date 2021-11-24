@@ -1,4 +1,4 @@
-### Pard-1
+### Part-1
 Use ```vector_ai_fashion_mnist.ipynb``` to train multi-class classification model. For inferencing, currently I am taking the index of the test dataframe, and giving the prediciton. This can be processed in any way.
 
 ### Part-2 and Part-3
