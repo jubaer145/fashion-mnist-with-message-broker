@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from model.model import get_model
 from utils.preprocessor_utils import get_preprocessor
-from utils.messages_utils import publish_prediction
+from utils.messages_utils import kafka_publish_prediction, request_router, gpubsub_publish_prediction
 
 from kafka import KafkaConsumer
 
@@ -78,11 +78,15 @@ def start():
         message = json.loads(msg.value)
         if 'data' in message:
             request_id = message['request_id']
+            broker = message['broker']
             print(message)
             img_id = message['data']  ## this image id represents the original image path. In our case, it the index of the test dataframe of the fashionmnist
             img = df2image(img_id)
             label = predict(img)
-            publish_prediction(label, request_id)
+            if broker == 0:
+                kafka_publish_prediction(request_id, label)
+            elif broker == 1:
+                gpubsub_publish_prediction(request_id, label)  ## this is only for demo purpuse
 
 
 if __name__ == '__main__':
