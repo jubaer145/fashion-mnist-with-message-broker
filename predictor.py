@@ -20,7 +20,8 @@ test_df = pd.read_csv("/media/jubaer/DataBank/karma/fashion_mnist_ds/archive/fas
 
 KAFKA_HOST = 'localhost:9092'
 TOPICS = 'app_messages'
-consumer = None
+consumer_1 = None
+consumer_2 = None
 model = None
 
 def get_label(idx):
@@ -70,30 +71,45 @@ def predict(img):
     idx = torch.argmax(torch.exp(model(img)))
     return get_label(idx)
     
+def handle_prediction(message):
+    img_id = message['data']  ## this image id represents the original image path. In our case, it the index of the test dataframe of the fashionmnist
+    img = df2image(img_id)
+    label = predict(img)
+    return label
+
+def handle_broker(broker_id, request_id, label):
+    if broker == 0:
+        kafka_publish_prediction(request_id, label)
+    elif broker == 1:
+        gpubsub_publish_prediction(request_id, label)  ## this is only for demo purpuse
+
+
+
 
 
 def start():
     print('***************Started*****************')
-    for msg in consumer:
-        message = json.loads(msg.value)
-        if 'data' in message:
-            request_id = message['request_id']
-            broker = message['broker']
-            print(message)
-            img_id = message['data']  ## this image id represents the original image path. In our case, it the index of the test dataframe of the fashionmnist
-            img = df2image(img_id)
-            label = predict(img)
-            if broker == 0:
-                kafka_publish_prediction(request_id, label)
-            elif broker == 1:
-                gpubsub_publish_prediction(request_id, label)  ## this is only for demo purpuse
-
+    for msg_1, msg_2 in zip(consumer_1, consumer_2):
+        message_1 = json.loads(msg_1.value)
+        message_2 = json.loads(msg_2.value)
+        if 'data' in message_1:
+            request_id = message_1['request_id']
+            broker = message_1['broker']
+            label = handle_prediction(message_1)
+            handle_broker(broker, request_id, label)
+        if 'data' in message_2:
+            request_id = message_2['request_id']
+            broker = message_2['broker']
+            label = handle_prediction(message_2)
+            handle_broker(broker, request_id, label)
+        
 
 if __name__ == '__main__':
     checkpoint_version = "v1.pth"
     checkpoint_path = os.path.join(*[os.getcwd(), "model", "weights", checkpoint_version])
     model = load_model(checkpoint_path)
-    consumer = KafkaConsumer(bootstrap_servers=KAFKA_HOST)
+    consumer_1 = KafkaConsumer(bootstrap_servers=KAFKA_HOST)
+    consumer_2 = "google-pub-sub" ## for demo purpose
     consumer.subscribe(TOPICS)
     start()
 
